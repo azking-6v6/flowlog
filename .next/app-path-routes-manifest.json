@@ -1,0 +1,9 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/auth/callback/route": "/auth/callback",
+  "/add/page": "/add",
+  "/library/page": "/library",
+  "/login/page": "/login",
+  "/manage/page": "/manage",
+  "/page": "/"
+}
