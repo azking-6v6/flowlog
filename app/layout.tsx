@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Manrope } from "next/font/google";
+import { Menu } from "lucide-react";
 import "./globals.css";
 import { logout } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -28,25 +29,54 @@ async function NavBar() {
           Flowlog
         </Link>
         {user ? (
-          <nav className="flex items-center gap-2 rounded-full border border-border/70 bg-background/55 px-2 py-1">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/">ホーム</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/add">追加</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/library">ライブラリ</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/manage">管理</Link>
-            </Button>
-            <form action={logout}>
-              <Button size="sm" variant="secondary" type="submit">
-                ログアウト
+          <>
+            <nav className="hidden items-center gap-2 rounded-full border border-border/70 bg-background/55 px-2 py-1 md:flex">
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/">ホーム</Link>
               </Button>
-            </form>
-          </nav>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/add">追加</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/library">ライブラリ</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/manage">管理</Link>
+              </Button>
+              <form action={logout}>
+                <Button size="sm" variant="secondary" type="submit">
+                  ログアウト
+                </Button>
+              </form>
+            </nav>
+
+            <details className="relative md:hidden">
+              <summary className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg border border-border/80 bg-muted/60 text-foreground marker:content-none">
+                <Menu className="h-4 w-4" />
+              </summary>
+              <div className="absolute right-0 z-50 mt-2 w-44 rounded-xl border border-border/80 bg-card p-2 shadow-[0_18px_30px_-18px_hsl(220_30%_1%_/_0.95)]">
+                <div className="flex flex-col gap-1">
+                  <Button asChild variant="ghost" size="sm" className="justify-start">
+                    <Link href="/">ホーム</Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm" className="justify-start">
+                    <Link href="/add">追加</Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm" className="justify-start">
+                    <Link href="/library">ライブラリ</Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm" className="justify-start">
+                    <Link href="/manage">管理</Link>
+                  </Button>
+                  <form action={logout} className="pt-1">
+                    <Button size="sm" variant="secondary" type="submit" className="w-full justify-start">
+                      ログアウト
+                    </Button>
+                  </form>
+                </div>
+              </div>
+            </details>
+          </>
         ) : null}
       </div>
     </header>
