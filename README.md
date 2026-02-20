@@ -11,17 +11,17 @@ Next.js App Router + TypeScript + Tailwind + Supabase(Auth/Postgres) 構成で�
 - Supabase (Auth + Postgres)
 - dnd-kit
 - framer-motion
+- Playwright (E2E)
 
 ## ローカル起動
 
-1. 依存関係インストール
+1. 依存関係をインストール
 
 ```bash
 npm install
 ```
 
-2. 環境変数を設定
-
+2. 環境変数を設定  
 `.env.example` をコピーして `.env.local` を作成し、値を入れてください。
 
 ```bash
@@ -29,9 +29,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 ```
 
-3. Supabase のスキーマを適用
-
-- Supabase プロジェクト作成
+3. Supabase スキーマを適用
+- Supabase プロジェクトを作成
 - SQL Editor で `supabase/schema.sql` を実行
 
 4. 開発サーバー起動
@@ -40,32 +39,47 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 npm run dev
 ```
 
-## Vercel デプロイ手順
+## Vercel デプロイ
 
-1. このリポジトリを GitHub に push
+1. GitHub に push
 2. Vercel でプロジェクトを Import
 3. Vercel の Environment Variables に以下を設定
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Deploy 実行
+4. Deploy
 
-## Google OAuth 設定
+## OAuth 設定
 
-Supabase Auth > Providers > Google を有効化し、Redirect URL を設定:
+### Supabase 側
+- `Authentication > URL Configuration`
+- `Site URL`: `https://<your-vercel-domain>`
+- `Redirect URLs`:
+  - `http://localhost:3000/auth/callback`
+  - `https://<your-vercel-domain>/auth/callback`
 
-- `http://localhost:3000/auth/callback`
-- `https://<your-vercel-domain>/auth/callback`
+### Google Cloud 側
+- `承認済みのリダイレクト URI` に以下を設定
+  - `https://<your-project-ref>.supabase.co/auth/v1/callback`
+
+## 品質チェック
+
+```bash
+npm run lint
+npm run build
+```
+
+## E2E テスト
+
+```bash
+npm run e2e
+```
+
+`PLAYWRIGHT_BASE_URL` を指定すると対象URLを変更できます。未指定時は `http://127.0.0.1:3000` を使用します。
 
 ## 実装済みページ
 
-- `/` 優先リスト（D&D並び替え、シリーズ単位表示）
+- `/` 優先リスト（D&D並び替え、シリーズ表示）
 - `/add` 新規登録
 - `/library` 一覧・検索・編集
 - `/manage` 完了管理
 - `/login` Google ログイン
-
-## 補足
-
-- `next.config.ts` で `images.remotePatterns` は全ホストを許可しています。
-- ビルド時の ESLint 実行は一時的に無効化（`ignoreDuringBuilds: true`）しています。
-  - 型チェックは `next build` で継続されます。

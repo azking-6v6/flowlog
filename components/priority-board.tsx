@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { format, differenceInCalendarDays, parseISO } from "date-fns";
+import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { motion } from "framer-motion";
 import { DndContext, PointerSensor, TouchSensor, closestCenter, useDraggable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
 import { reorder, updateStatus } from "@/app/actions";
@@ -25,6 +25,11 @@ type Props = {
 type Block =
   | { key: string; kind: "series"; seriesName: string; itemIds: string[] }
   | { key: string; kind: "single"; itemIds: [string] };
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  return "保存に失敗しました。時間をおいて再試行してください。";
+}
 
 function typeNameFor(item: WorkItem, types: ContentType[]) {
   return types.find((t) => t.id === item.type_id)?.name ?? "不明";
@@ -101,17 +106,8 @@ function DraggableSeriesWrapper({
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
 
   return (
-    <motion.details
-      ref={setNodeRef}
-      style={style}
-      open
-      className="rounded-xl border border-border bg-card/60 p-3"
-    >
-      <summary
-        {...attributes}
-        {...listeners}
-        className="mb-3 cursor-grab touch-none select-none text-sm font-semibold"
-      >
+    <motion.details ref={setNodeRef} style={style} open className="rounded-xl border border-border bg-card/60 p-3">
+      <summary {...attributes} {...listeners} className="mb-3 cursor-grab touch-none select-none text-sm font-semibold">
         {title}
       </summary>
       {children}
@@ -121,6 +117,7 @@ function DraggableSeriesWrapper({
 
 export function PriorityBoard({ items, types, series, globalOrder, typeOrderMap }: Props) {
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const [localGlobal, setLocalGlobal] = useState(globalOrder);
   const [localTypeMap, setLocalTypeMap] = useState(typeOrderMap);
@@ -148,18 +145,9 @@ export function PriorityBoard({ items, types, series, globalOrder, typeOrderMap 
         if (usedSeries.has(item.series.id)) continue;
         usedSeries.add(item.series.id);
         const ids = visibleItems.filter((v) => v.series?.id === item.series!.id).map((v) => v.id);
-        result.push({
-          key: `series:${item.series.id}`,
-          kind: "series",
-          seriesName: item.series.name,
-          itemIds: ids
-        });
+        result.push({ key: `series:${item.series.id}`, kind: "series", seriesName: item.series.name, itemIds: ids });
       } else {
-        result.push({
-          key: `single:${item.id}`,
-          kind: "single",
-          itemIds: [item.id]
-        });
+        result.push({ key: `single:${item.id}`, kind: "single", itemIds: [item.id] });
       }
     }
     return result;
@@ -174,16 +162,26 @@ export function PriorityBoard({ items, types, series, globalOrder, typeOrderMap 
   }, [blocks]);
 
   const persistOrder = (nextOrder: string[]) => {
+    setError(null);
     if (filter === "all") {
       setLocalGlobal(nextOrder);
       startTransition(async () => {
-        await reorder("global", null, nextOrder);
+        try {
+          await reorder("global", null, nextOrder);
+        } catch (e) {
+          setError(getErrorMessage(e));
+        }
       });
       return;
     }
+
     setLocalTypeMap((prev) => ({ ...prev, [filter]: nextOrder }));
     startTransition(async () => {
-      await reorder("type", filter, nextOrder);
+      try {
+        await reorder("type", filter, nextOrder);
+      } catch (e) {
+        setError(getErrorMessage(e));
+      }
     });
   };
 
@@ -197,7 +195,6 @@ export function PriorityBoard({ items, types, series, globalOrder, typeOrderMap 
     const overBlockKey = blockByItemId.get(overId);
     if (!activeBlockKey || !overBlockKey) return;
 
-    // 同じシリーズ内のみ、シリーズ内部の順序を調整する
     if (activeBlockKey === overBlockKey) {
       const block = blocks.find((b) => b.key === activeBlockKey);
       if (!block || block.kind !== "series") return;
@@ -221,7 +218,6 @@ export function PriorityBoard({ items, types, series, globalOrder, typeOrderMap 
       return;
     }
 
-    // 別ブロック上にドロップした場合はブロック単位で移動する
     const blockOrder = blocks.map((b) => b.key);
     const oldBlockIndex = blockOrder.indexOf(activeBlockKey);
     const newBlockIndex = blockOrder.indexOf(overBlockKey);
@@ -241,13 +237,20 @@ export function PriorityBoard({ items, types, series, globalOrder, typeOrderMap 
   };
 
   const onComplete = (id: string) => {
+    setError(null);
     startTransition(async () => {
-      await updateStatus(id, "completed");
+      try {
+        await updateStatus(id, "completed");
+      } catch (e) {
+        setError(getErrorMessage(e));
+      }
     });
   };
 
   return (
     <div className="space-y-4">
+      {error ? <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</p> : null}
+
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant={filter === "all" ? "default" : "secondary"} onClick={() => setFilter("all")}>
           すべて
@@ -268,12 +271,7 @@ export function PriorityBoard({ items, types, series, globalOrder, typeOrderMap 
                   key={block.key}
                   blockKey={block.key}
                   title={
-                    <motion.span
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="inline-block"
-                    >
+                    <motion.span initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="inline-block">
                       {block.seriesName}
                     </motion.span>
                   }

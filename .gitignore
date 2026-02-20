@@ -21,6 +21,8 @@ pnpm-debug.log*
 
 # test / coverage
 coverage/
+playwright-report/
+test-results/
 
 # vercel
 .vercel/
@@ -28,3 +30,4 @@ coverage/
 # misc
 .DS_Store
 Thumbs.db
+*.tsbuildinfo

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { format, parseISO } from "date-fns";
 import { updateStatus } from "@/app/actions";
 import { Badge } from "@/components/ui/badge";
@@ -9,16 +9,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { STATUS_LABELS } from "@/lib/constants";
 import type { WorkItem } from "@/lib/types";
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  return "更新に失敗しました。時間をおいて再試行してください。";
+}
+
 export function ManageView({ items }: { items: WorkItem[] }) {
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
   const restore = (id: string) => {
+    setError(null);
     startTransition(async () => {
-      await updateStatus(id, "planned");
+      try {
+        await updateStatus(id, "planned");
+      } catch (e) {
+        setError(getErrorMessage(e));
+      }
     });
   };
 
   return (
     <div className="space-y-3">
+      {error ? <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</p> : null}
       {items.map((item) => (
         <Card key={item.id}>
           <CardHeader className="pb-2">
@@ -38,7 +51,7 @@ export function ManageView({ items }: { items: WorkItem[] }) {
           </CardContent>
         </Card>
       ))}
-      {items.length === 0 ? <p className="text-sm text-muted-foreground">completed作品はありません。</p> : null}
+      {items.length === 0 ? <p className="text-sm text-muted-foreground">完了した作品はまだありません。</p> : null}
     </div>
   );
 }
