@@ -20,10 +20,13 @@ create table if not exists public.content_types (
 create table if not exists public.series (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
+  type_id uuid not null references public.content_types(id) on delete cascade,
   name text not null,
   created_at timestamptz not null default now(),
-  unique (user_id, name)
+  unique (user_id, type_id, name)
 );
+
+alter table public.series add column if not exists type_id uuid references public.content_types(id) on delete cascade;
 
 create table if not exists public.work_items (
   id uuid primary key default gen_random_uuid(),

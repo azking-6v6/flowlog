@@ -29,6 +29,15 @@ async function getAuthed() {
   return { supabase, user };
 }
 
+async function assertSeriesTypeMatch(seriesId: string, typeId: string, userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("series").select("type_id").eq("id", seriesId).eq("user_id", userId).maybeSingle();
+  if (error) throw error;
+  if (!data || data.type_id !== typeId) {
+    throw new Error("Selected series does not belong to the selected content type");
+  }
+}
+
 export async function ensureDefaultTypes() {
   const { supabase, user } = await getAuthed();
   const { data } = await supabase.from("content_types").select("name").eq("user_id", user.id);
@@ -47,11 +56,12 @@ export async function createType(name: string) {
   revalidatePath("/library");
 }
 
-export async function createSeries(name: string) {
+export async function createSeries(name: string, typeId: string) {
   const { supabase, user } = await getAuthed();
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Series name required");
-  await supabase.from("series").insert({ user_id: user.id, name: trimmed });
+  if (!typeId) throw new Error("Type required for series");
+  await supabase.from("series").insert({ user_id: user.id, name: trimmed, type_id: typeId });
   revalidatePath("/");
   revalidatePath("/add");
   revalidatePath("/library");
@@ -60,6 +70,9 @@ export async function createSeries(name: string) {
 export async function createWorkItem(payload: z.infer<typeof workItemSchema>) {
   const parsed = workItemSchema.parse(payload);
   const { supabase, user } = await getAuthed();
+  if (parsed.series_id) {
+    await assertSeriesTypeMatch(parsed.series_id, parsed.type_id, user.id);
+  }
 
   const { data: workRow, error: workErr } = await supabase
     .from("works")
@@ -122,6 +135,9 @@ export async function updateWorkItem(payload: z.infer<typeof updateSchema>) {
   const parsed = updateSchema.parse(payload);
   const { supabase, user } = await getAuthed();
   const completedAt = parsed.status === "completed" ? new Date().toISOString() : null;
+  if (parsed.series_id) {
+    await assertSeriesTypeMatch(parsed.series_id, parsed.type_id, user.id);
+  }
 
   const { data: existingItem, error: readErr } = await supabase.from("work_items").select("work_id").eq("id", parsed.id).eq("user_id", user.id).single();
   if (readErr) throw readErr;

@@ -8,6 +8,7 @@ export type ContentType = {
 export type Series = {
   id: string;
   name: string;
+  type_id: string;
 };
 
 export type WorkItem = {

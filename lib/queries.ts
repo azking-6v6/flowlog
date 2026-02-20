@@ -16,7 +16,7 @@ export async function getMetaData(userId: string) {
   const supabase = await createClient();
   const [{ data: types }, { data: series }] = await Promise.all([
     supabase.from("content_types").select("id,name").eq("user_id", userId).order("name"),
-    supabase.from("series").select("id,name").eq("user_id", userId).order("name")
+    supabase.from("series").select("id,name,type_id").eq("user_id", userId).order("name")
   ]);
   return {
     types: (types ?? []) as ContentType[],
@@ -28,7 +28,7 @@ export async function getWorkItems(userId: string, statuses?: string[]) {
   const supabase = await createClient();
   let query = supabase
     .from("work_items")
-    .select("id,user_id,status,rating,review_text,why_interested,availability_end,completed_at,created_at,updated_at,type_id,series_id,tags,work:works(id,title,thumbnail_url),content_type:content_types(id,name),series:series(id,name)")
+    .select("id,user_id,status,rating,review_text,why_interested,availability_end,completed_at,created_at,updated_at,type_id,series_id,tags,work:works(id,title,thumbnail_url),content_type:content_types(id,name),series:series(id,name,type_id)")
     .eq("user_id", userId);
 
   if (statuses && statuses.length > 0) query = query.in("status", statuses);

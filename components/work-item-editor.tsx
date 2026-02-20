@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { createSeries, createType, updateWorkItem } from "@/app/actions";
@@ -41,6 +41,14 @@ export function WorkItemEditor({ item, types, series }: Props) {
   const [tags, setTags] = useState(item.tags.join(","));
   const [newType, setNewType] = useState("");
   const [newSeries, setNewSeries] = useState("");
+  const filteredSeries = useMemo(() => series.filter((s) => s.type_id === typeId), [series, typeId]);
+
+  useEffect(() => {
+    if (seriesId === "none") return;
+    if (!filteredSeries.some((s) => s.id === seriesId)) {
+      setSeriesId("none");
+    }
+  }, [filteredSeries, seriesId]);
 
   const onSave = () => {
     setError(null);
@@ -89,7 +97,7 @@ export function WorkItemEditor({ item, types, series }: Props) {
     setError(null);
     startTransition(async () => {
       try {
-        await createSeries(newSeries);
+        await createSeries(newSeries, typeId);
         setNewSeries("");
         router.refresh();
       } catch (e) {
@@ -142,7 +150,7 @@ export function WorkItemEditor({ item, types, series }: Props) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">シリーズなし</SelectItem>
-                  {series.map((s) => (
+                  {filteredSeries.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.name}
                     </SelectItem>
@@ -151,7 +159,7 @@ export function WorkItemEditor({ item, types, series }: Props) {
               </Select>
               <div className="flex gap-2">
                 <Input value={newSeries} onChange={(e) => setNewSeries(e.target.value)} placeholder="新しいシリーズ" />
-                <Button variant="outline" onClick={addSeries} disabled={pending} aria-label="シリーズを追加">
+                <Button variant="outline" onClick={addSeries} disabled={pending || !typeId} aria-label="シリーズを追加">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
