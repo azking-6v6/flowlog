@@ -118,7 +118,12 @@ export function WorkItemEditor({ item, types, series }: Props) {
           編集
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-h-[90vh] overflow-y-auto"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>作品を編集</DialogTitle>
           <DialogDescription>タイトル・ステータス・評価などを更新します。</DialogDescription>

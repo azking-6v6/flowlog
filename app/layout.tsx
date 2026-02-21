@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Manrope } from "next/font/google";
-import { Menu } from "lucide-react";
 import "./globals.css";
 import { logout } from "@/app/actions";
+import { MobileNav } from "@/components/mobile-nav";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 
@@ -50,32 +50,7 @@ async function NavBar() {
               </form>
             </nav>
 
-            <details className="relative md:hidden">
-              <summary className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg border border-border/80 bg-muted/60 text-foreground marker:content-none">
-                <Menu className="h-4 w-4" />
-              </summary>
-              <div className="absolute right-0 z-50 mt-2 w-44 rounded-xl border border-border/80 bg-card p-2 shadow-[0_18px_30px_-18px_hsl(220_30%_1%_/_0.95)]">
-                <div className="flex flex-col gap-1">
-                  <Button asChild variant="ghost" size="sm" className="justify-start">
-                    <Link href="/">ホーム</Link>
-                  </Button>
-                  <Button asChild variant="ghost" size="sm" className="justify-start">
-                    <Link href="/add">追加</Link>
-                  </Button>
-                  <Button asChild variant="ghost" size="sm" className="justify-start">
-                    <Link href="/library">ライブラリ</Link>
-                  </Button>
-                  <Button asChild variant="ghost" size="sm" className="justify-start">
-                    <Link href="/manage">管理</Link>
-                  </Button>
-                  <form action={logout} className="pt-1">
-                    <Button size="sm" variant="secondary" type="submit" className="w-full justify-start">
-                      ログアウト
-                    </Button>
-                  </form>
-                </div>
-              </div>
-            </details>
+            <MobileNav />
           </>
         ) : null}
       </div>
