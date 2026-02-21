@@ -26,6 +26,66 @@ type Block =
   | { key: string; kind: "series"; seriesName: string; itemIds: string[] }
   | { key: string; kind: "single"; itemIds: [string] };
 
+function applyMovedTypeItemToGlobal(globalOrder: string[], prevTypeOrder: string[], nextTypeOrder: string[]) {
+  if (prevTypeOrder.length !== nextTypeOrder.length || prevTypeOrder.length === 0) return globalOrder;
+
+  const prevIndexMap = new Map(prevTypeOrder.map((id, idx) => [id, idx]));
+  let movedId: string | null = null;
+  let newTypeIndex = -1;
+  let maxDelta = -1;
+
+  nextTypeOrder.forEach((id, idx) => {
+    const oldIdx = prevIndexMap.get(id);
+    if (oldIdx === undefined || oldIdx === idx) return;
+    const delta = Math.abs(oldIdx - idx);
+    if (delta > maxDelta) {
+      maxDelta = delta;
+      movedId = id;
+      newTypeIndex = idx;
+    }
+  });
+
+  if (!movedId || newTypeIndex < 0) return globalOrder;
+
+  const fromGlobalIndex = globalOrder.indexOf(movedId);
+  if (fromGlobalIndex < 0) return globalOrder;
+
+  const base = globalOrder.filter((id) => id !== movedId);
+  let toGlobalIndex = base.length;
+
+  if (newTypeIndex === 0) {
+    const firstTypeId = nextTypeOrder.find((id) => id !== movedId) ?? null;
+    if (firstTypeId) {
+      const idx = base.indexOf(firstTypeId);
+      toGlobalIndex = idx >= 0 ? idx : 0;
+    } else {
+      toGlobalIndex = 0;
+    }
+  } else {
+    const prevTypeId = nextTypeOrder[newTypeIndex - 1];
+    const idx = base.indexOf(prevTypeId);
+    toGlobalIndex = idx >= 0 ? idx + 1 : base.length;
+  }
+
+  const nextGlobal = [...base];
+  nextGlobal.splice(toGlobalIndex, 0, movedId);
+  return nextGlobal;
+}
+
+function deriveTypeOrderMapFromGlobal(items: WorkItem[], globalOrder: string[]) {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const typeMap: Record<string, string[]> = {};
+
+  for (const id of globalOrder) {
+    const item = byId.get(id);
+    if (!item) continue;
+    if (!typeMap[item.type_id]) typeMap[item.type_id] = [];
+    typeMap[item.type_id].push(id);
+  }
+
+  return typeMap;
+}
+
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) return error.message;
   return "保存に失敗しました。時間をおいて再試行してください。";
@@ -164,10 +224,13 @@ export function PriorityBoard({ items, types, series, globalOrder, typeOrderMap 
   const persistOrder = (nextOrder: string[]) => {
     setError(null);
     if (filter === "all") {
+      const nextTypeMap = deriveTypeOrderMapFromGlobal(items, nextOrder);
       setLocalGlobal(nextOrder);
+      setLocalTypeMap(nextTypeMap);
       startTransition(async () => {
         try {
-          await reorder("global", null, nextOrder);
+          const typeCalls = Object.entries(nextTypeMap).map(([typeId, ids]) => reorder("type", typeId, ids));
+          await Promise.all([reorder("global", null, nextOrder), ...typeCalls]);
         } catch (e) {
           setError(getErrorMessage(e));
         }
@@ -175,10 +238,14 @@ export function PriorityBoard({ items, types, series, globalOrder, typeOrderMap 
       return;
     }
 
+    const prevTypeOrder = currentOrder;
+    const nextGlobal = applyMovedTypeItemToGlobal(localGlobal, prevTypeOrder, nextOrder);
+
+    setLocalGlobal(nextGlobal);
     setLocalTypeMap((prev) => ({ ...prev, [filter]: nextOrder }));
     startTransition(async () => {
       try {
-        await reorder("type", filter, nextOrder);
+        await Promise.all([reorder("type", filter, nextOrder), reorder("global", null, nextGlobal)]);
       } catch (e) {
         setError(getErrorMessage(e));
       }
@@ -262,7 +329,7 @@ export function PriorityBoard({ items, types, series, globalOrder, typeOrderMap 
         ))}
       </div>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <DndContext id="priority-board-dnd" sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={visibleItems.map((v) => v.id)} strategy={verticalListSortingStrategy}>
           {blocks.map((block, index) => {
             if (block.kind === "series") {
