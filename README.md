@@ -33,6 +33,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 - Supabase プロジェクトを作成
 - SQL Editor で `supabase/schema.sql` を実行
 - 既存環境を更新する場合は `supabase/migrations/20260220_series_type_link.sql` も実行
+- さらに感想3分割を使う場合は `supabase/migrations/20260221_split_review_fields.sql` も実行
 
 4. 開発サーバー起動
 

@@ -24,6 +24,14 @@ function shouldShowToggle(text: string) {
   return text.length > 120 || text.split("\n").length > 3;
 }
 
+function buildReviewSections(item: WorkItem) {
+  const good = item.review_good ?? "";
+  const bad = item.review_bad ?? "";
+  const note = item.review_note ?? item.review_text ?? "";
+  const plain = [good, bad, note].filter(Boolean).join("\n");
+  return { good, bad, note, plain };
+}
+
 export function ManageView({ items }: { items: WorkItem[] }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -128,9 +136,10 @@ export function ManageView({ items }: { items: WorkItem[] }) {
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {filtered.map((item) => {
-          const hasReview = Boolean(item.review_text);
+          const review = buildReviewSections(item);
+          const hasReview = Boolean(review.plain);
           const isExpanded = Boolean(expandedIds[item.id]);
-          const canToggle = hasReview && shouldShowToggle(item.review_text ?? "");
+          const canToggle = hasReview && shouldShowToggle(review.plain);
 
           return (
             <Card key={item.id}>
@@ -147,17 +156,54 @@ export function ManageView({ items }: { items: WorkItem[] }) {
 
                 {hasReview ? (
                   <div className={`prose prose-sm prose-invert max-w-none break-words text-muted-foreground ${isExpanded ? "" : "max-h-20 overflow-hidden"}`}>
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm, remarkBreaks]}
-                      components={{
-                        p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
-                        ul: ({ children }) => <ul className="mb-3 list-disc pl-5 last:mb-0">{children}</ul>,
-                        ol: ({ children }) => <ol className="mb-3 list-decimal pl-5 last:mb-0">{children}</ol>,
-                        li: ({ children }) => <li className="mb-1">{children}</li>
-                      }}
-                    >
-                      {item.review_text ?? ""}
-                    </ReactMarkdown>
+                    {review.good ? (
+                      <div className="mb-3">
+                        <div className="mb-1 text-xs font-semibold text-foreground/80">良い点</div>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm, remarkBreaks]}
+                          components={{
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            ul: ({ children }) => <ul className="mb-2 list-disc pl-5 last:mb-0">{children}</ul>,
+                            ol: ({ children }) => <ol className="mb-2 list-decimal pl-5 last:mb-0">{children}</ol>,
+                            li: ({ children }) => <li className="mb-1">{children}</li>
+                          }}
+                        >
+                          {review.good}
+                        </ReactMarkdown>
+                      </div>
+                    ) : null}
+                    {review.bad ? (
+                      <div className="mb-3">
+                        <div className="mb-1 text-xs font-semibold text-foreground/80">悪い点</div>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm, remarkBreaks]}
+                          components={{
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            ul: ({ children }) => <ul className="mb-2 list-disc pl-5 last:mb-0">{children}</ul>,
+                            ol: ({ children }) => <ol className="mb-2 list-decimal pl-5 last:mb-0">{children}</ol>,
+                            li: ({ children }) => <li className="mb-1">{children}</li>
+                          }}
+                        >
+                          {review.bad}
+                        </ReactMarkdown>
+                      </div>
+                    ) : null}
+                    {review.note ? (
+                      <div>
+                        <div className="mb-1 text-xs font-semibold text-foreground/80">メモ</div>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm, remarkBreaks]}
+                          components={{
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            ul: ({ children }) => <ul className="mb-2 list-disc pl-5 last:mb-0">{children}</ul>,
+                            ol: ({ children }) => <ol className="mb-2 list-decimal pl-5 last:mb-0">{children}</ol>,
+                            li: ({ children }) => <li className="mb-1">{children}</li>
+                          }}
+                        >
+                          {review.note}
+                        </ReactMarkdown>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
 

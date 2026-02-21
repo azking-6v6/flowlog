@@ -20,7 +20,7 @@ type Props = {
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) return error.message;
-  return "処理に失敗しました。時間をおいて再試行してください。";
+  return "追加に失敗しました。時間をおいて再試行してください。";
 }
 
 export function AddWorkForm({ types, series }: Props) {
@@ -35,7 +35,9 @@ export function AddWorkForm({ types, series }: Props) {
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [availabilityEnd, setAvailabilityEnd] = useState("");
   const [whyInterested, setWhyInterested] = useState("");
-  const [reviewText, setReviewText] = useState("");
+  const [reviewGood, setReviewGood] = useState("");
+  const [reviewBad, setReviewBad] = useState("");
+  const [reviewNote, setReviewNote] = useState("");
   const [tags, setTags] = useState("");
   const [newType, setNewType] = useState("");
   const [newSeries, setNewSeries] = useState("");
@@ -59,7 +61,10 @@ export function AddWorkForm({ types, series }: Props) {
           series_id: seriesId === "none" ? null : seriesId,
           status,
           rating,
-          review_text: reviewText || null,
+          review_good: reviewGood || null,
+          review_bad: reviewBad || null,
+          review_note: reviewNote || null,
+          review_text: reviewNote || null,
           why_interested: whyInterested || null,
           availability_end: availabilityEnd || null,
           thumbnail_url: thumbnailUrl || null,
@@ -68,9 +73,12 @@ export function AddWorkForm({ types, series }: Props) {
             .map((v) => v.trim())
             .filter(Boolean)
         });
+
         setTitle("");
         setWhyInterested("");
-        setReviewText("");
+        setReviewGood("");
+        setReviewBad("");
+        setReviewNote("");
         setTags("");
         setThumbnailUrl("");
         setAvailabilityEnd("");
@@ -185,7 +193,9 @@ export function AddWorkForm({ types, series }: Props) {
         <Input value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="サムネイルURL（任意）" />
         <Input type="date" value={availabilityEnd} onChange={(e) => setAvailabilityEnd(e.target.value)} />
         <Textarea value={whyInterested} onChange={(e) => setWhyInterested(e.target.value)} placeholder="気になった理由" />
-        <Textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} placeholder="感想" />
+        <Textarea value={reviewGood} onChange={(e) => setReviewGood(e.target.value)} placeholder="良い点" />
+        <Textarea value={reviewBad} onChange={(e) => setReviewBad(e.target.value)} placeholder="悪い点" />
+        <Textarea value={reviewNote} onChange={(e) => setReviewNote(e.target.value)} placeholder="メモ" />
         <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="タグ（カンマ区切り）" />
 
         <Button className="w-full" disabled={pending} onClick={submit}>

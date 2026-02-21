@@ -36,7 +36,9 @@ export function WorkItemEditor({ item, types, series }: Props) {
   const [rating, setRating] = useState(item.rating ?? 0);
   const [thumbnailUrl, setThumbnailUrl] = useState(item.work.thumbnail_url ?? "");
   const [whyInterested, setWhyInterested] = useState(item.why_interested ?? "");
-  const [reviewText, setReviewText] = useState(item.review_text ?? "");
+  const [reviewGood, setReviewGood] = useState(item.review_good ?? "");
+  const [reviewBad, setReviewBad] = useState(item.review_bad ?? "");
+  const [reviewNote, setReviewNote] = useState(item.review_note ?? item.review_text ?? "");
   const [availabilityEnd, setAvailabilityEnd] = useState(item.availability_end ?? "");
   const [tags, setTags] = useState(item.tags.join(","));
   const [newType, setNewType] = useState("");
@@ -61,7 +63,10 @@ export function WorkItemEditor({ item, types, series }: Props) {
           series_id: seriesId === "none" ? null : seriesId,
           status,
           rating,
-          review_text: reviewText || null,
+          review_good: reviewGood || null,
+          review_bad: reviewBad || null,
+          review_note: reviewNote || null,
+          review_text: reviewNote || null,
           why_interested: whyInterested || null,
           availability_end: availabilityEnd || null,
           thumbnail_url: thumbnailUrl || null,
@@ -184,7 +189,9 @@ export function WorkItemEditor({ item, types, series }: Props) {
           <Input value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="サムネイルURL" />
           <Input value={availabilityEnd} type="date" onChange={(e) => setAvailabilityEnd(e.target.value)} />
           <Textarea value={whyInterested} onChange={(e) => setWhyInterested(e.target.value)} placeholder="気になった理由" />
-          <Textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} placeholder="感想" />
+          <Textarea value={reviewGood} onChange={(e) => setReviewGood(e.target.value)} placeholder="良い点" />
+          <Textarea value={reviewBad} onChange={(e) => setReviewBad(e.target.value)} placeholder="悪い点" />
+          <Textarea value={reviewNote} onChange={(e) => setReviewNote(e.target.value)} placeholder="メモ" />
           <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="タグ（カンマ区切り）" />
           <Button className="w-full" onClick={onSave} disabled={pending}>
             保存

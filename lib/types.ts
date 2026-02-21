@@ -17,6 +17,9 @@ export type WorkItem = {
   status: Status;
   rating: number | null;
   review_text: string | null;
+  review_good: string | null;
+  review_bad: string | null;
+  review_note: string | null;
   why_interested: string | null;
   availability_end: string | null;
   completed_at: string | null;
