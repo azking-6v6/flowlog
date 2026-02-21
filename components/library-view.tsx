@@ -16,23 +16,34 @@ type Props = {
   series: Series[];
 };
 
+function matchesRatingBucket(rating: number | null, bucket: string) {
+  if (bucket === "all") return true;
+  if (rating === null) return false;
+
+  const selected = Number(bucket);
+  if (selected === 5) return rating === 5;
+  return rating >= selected && rating < selected + 1;
+}
+
 export function LibraryView({ items, types, series }: Props) {
   const [query, setQuery] = useState("");
   const [typeId, setTypeId] = useState("all");
   const [status, setStatus] = useState("all");
+  const [rating, setRating] = useState("all");
 
   const filtered = useMemo(() => {
     return items.filter((item) => {
       const byQuery = item.work.title.toLowerCase().includes(query.toLowerCase());
       const byType = typeId === "all" ? true : item.type_id === typeId;
       const byStatus = status === "all" ? true : item.status === status;
-      return byQuery && byType && byStatus;
+      const byRating = matchesRatingBucket(item.rating, rating);
+      return byQuery && byType && byStatus && byRating;
     });
-  }, [items, query, typeId, status]);
+  }, [items, query, typeId, status, rating]);
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-2 md:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-4">
         <Input placeholder="タイトルで検索" value={query} onChange={(e) => setQuery(e.target.value)} />
         <Select value={typeId} onValueChange={setTypeId}>
           <SelectTrigger>
@@ -60,7 +71,21 @@ export function LibraryView({ items, types, series }: Props) {
             ))}
           </SelectContent>
         </Select>
+        <Select value={rating} onValueChange={setRating}>
+          <SelectTrigger>
+            <SelectValue placeholder="評価" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">すべての評価</SelectItem>
+            <SelectItem value="1">★1</SelectItem>
+            <SelectItem value="2">★2</SelectItem>
+            <SelectItem value="3">★3</SelectItem>
+            <SelectItem value="4">★4</SelectItem>
+            <SelectItem value="5">★5</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((item) => (
           <Card key={item.id}>
@@ -73,7 +98,10 @@ export function LibraryView({ items, types, series }: Props) {
                 )}
                 <div className="space-y-2">
                   <div className="line-clamp-2 font-medium">{item.work.title}</div>
-                  <Badge variant="secondary">{STATUS_LABELS[item.status]}</Badge>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">{STATUS_LABELS[item.status]}</Badge>
+                    {item.rating !== null && item.rating > 0 ? <Badge variant="secondary">★{item.rating.toFixed(1)}</Badge> : null}
+                  </div>
                   <div className="text-xs text-muted-foreground">{item.content_type?.name ?? "-"}</div>
                 </div>
               </div>
