@@ -38,3 +38,24 @@ export type WorkItem = {
 };
 
 export type ScopeType = "global" | "type";
+
+export type InspirationCategory = {
+  id: string;
+  user_id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+};
+
+export type InspirationEntry = {
+  id: string;
+  user_id: string;
+  title: string;
+  url: string | null;
+  memo: string | null;
+  category_id: string | null;
+  is_starred: boolean;
+  created_at: string;
+  updated_at: string;
+  category: Pick<InspirationCategory, "id" | "name" | "sort_order"> | null;
+};

@@ -30,7 +30,7 @@ export function MobileNav() {
         <div className="absolute right-0 z-50 mt-2 w-44 rounded-xl border border-border/80 bg-card p-2 shadow-[0_18px_30px_-18px_hsl(220_30%_1%_/_0.95)]">
           <div className="flex flex-col gap-1">
             <Button asChild variant="ghost" size="sm" className="justify-start">
-              <Link href="/" onClick={() => setOpen(false)}>
+                <Link href="/" onClick={() => setOpen(false)}>
                 ホーム
               </Link>
             </Button>
@@ -47,6 +47,11 @@ export function MobileNav() {
             <Button asChild variant="ghost" size="sm" className="justify-start">
               <Link href="/manage" onClick={() => setOpen(false)}>
                 管理
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="justify-start">
+              <Link href="/inspiration" onClick={() => setOpen(false)}>
+                インスピレーション
               </Link>
             </Button>
             <form action={logout} className="pt-1" onSubmit={() => setOpen(false)}>

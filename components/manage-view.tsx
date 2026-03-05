@@ -134,7 +134,7 @@ export function ManageView({ items }: { items: WorkItem[] }) {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="columns-1 gap-3 space-y-3 md:columns-2">
         {filtered.map((item) => {
           const review = buildReviewSections(item);
           const hasReview = Boolean(review.plain);
@@ -142,7 +142,7 @@ export function ManageView({ items }: { items: WorkItem[] }) {
           const canToggle = hasReview && shouldShowToggle(review.plain);
 
           return (
-            <Card key={item.id}>
+            <Card key={item.id} className="mb-3 break-inside-avoid">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">{item.work.title}</CardTitle>
               </CardHeader>

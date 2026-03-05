@@ -1,0 +1,37 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Full icon is the face -->
+  <rect width="512" height="512" rx="120" fill="#0F172A"/>
+  <rect x="12" y="12" width="488" height="488" rx="114" fill="#1F7A7A"/>
+  <rect x="12" y="12" width="488" height="488" rx="114" stroke="#2A9A98" stroke-width="8"/>
+
+  <!-- Soft highlight -->
+  <ellipse cx="178" cy="142" rx="88" ry="54" fill="#7FD3C8" fill-opacity="0.42"/>
+  <ellipse cx="148" cy="114" rx="30" ry="18" fill="#B4EFE6" fill-opacity="0.7"/>
+
+  <!-- Eyes -->
+  <ellipse cx="190" cy="238" rx="56" ry="62" fill="#F6FFFE"/>
+  <ellipse cx="322" cy="238" rx="56" ry="62" fill="#F6FFFE"/>
+  <circle cx="206" cy="246" r="20" fill="#0C2B3A"/>
+  <circle cx="338" cy="246" r="20" fill="#0C2B3A"/>
+  <circle cx="212" cy="238" r="6" fill="#D8F8FF"/>
+  <circle cx="344" cy="238" r="6" fill="#D8F8FF"/>
+
+  <!-- Brows -->
+  <path d="M140 188L166 170" stroke="#A2E9DF" stroke-width="10" stroke-linecap="round"/>
+  <path d="M346 170L372 188" stroke="#A2E9DF" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Cheeks -->
+  <ellipse cx="128" cy="324" rx="26" ry="15" fill="#98E1D8" fill-opacity="0.65"/>
+  <ellipse cx="384" cy="324" rx="26" ry="15" fill="#98E1D8" fill-opacity="0.65"/>
+
+  <!-- Hand -->
+  <ellipse cx="346" cy="372" rx="56" ry="40" fill="#186B6C"/>
+
+  <!-- Pen -->
+  <g transform="rotate(-24 364 368)">
+    <rect x="298" y="354" width="146" height="24" rx="12" fill="#23324A"/>
+    <rect x="398" y="354" width="28" height="24" rx="6" fill="#F8C35A"/>
+    <path d="M444 366L470 359V373L444 366Z" fill="#E9EEF6"/>
+    <path d="M468 363L479 366L468 369V363Z" fill="#111827"/>
+  </g>
+</svg>

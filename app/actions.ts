@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { DEFAULT_CONTENT_TYPES } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
+import { getInspirationEntries } from "@/lib/queries";
 import type { ScopeType, Status } from "@/lib/types";
 
 const workItemSchema = z.object({
@@ -211,6 +212,212 @@ export async function reorder(scopeType: ScopeType, typeId: string | null, order
     if (error) throw error;
   }
   revalidatePath("/");
+}
+
+const inspirationEntrySchema = z.object({
+  title: z.string().trim().min(1, "Title is required"),
+  url: z.string().trim().url().nullable().optional(),
+  memo: z.string().nullable().optional(),
+  category_id: z.string().uuid().nullable().optional(),
+  is_starred: z.boolean().default(false)
+});
+
+const inspirationCategorySchema = z.object({
+  name: z.string().trim().min(1, "Category name is required")
+});
+
+const inspirationQuerySchema = z.object({
+  scope: z.enum(["inbox", "all", "star", "category"]),
+  categoryId: z.string().uuid().nullable().optional(),
+  query: z.string().optional(),
+  offset: z.number().int().min(0).default(0),
+  limit: z.number().int().min(1).max(100).default(50)
+});
+
+async function revalidateInspirationPaths() {
+  revalidatePath("/inspiration");
+  revalidatePath("/inspiration/new");
+  revalidatePath("/inspiration/categories");
+}
+
+export async function ensureDefaultInspirationCategories() {
+  const { supabase, user } = await getAuthed();
+  const { error } = await supabase.rpc("bootstrap_inspiration_categories", { target_user_id: user.id });
+  if (error) throw error;
+}
+
+export async function fetchInspirationEntries(input: z.infer<typeof inspirationQuerySchema>) {
+  const parsed = inspirationQuerySchema.parse(input);
+  const { user } = await getAuthed();
+  return getInspirationEntries(user.id, {
+    scope: parsed.scope,
+    categoryId: parsed.categoryId ?? null,
+    query: parsed.query,
+    offset: parsed.offset,
+    limit: parsed.limit
+  });
+}
+
+export async function createInspirationEntry(input: z.infer<typeof inspirationEntrySchema>) {
+  const parsed = inspirationEntrySchema.parse(input);
+  const { supabase, user } = await getAuthed();
+  const { data, error } = await supabase
+    .from("inspiration_entries")
+    .insert({
+      user_id: user.id,
+      title: parsed.title,
+      url: parsed.url || null,
+      memo: parsed.memo ?? null,
+      category_id: parsed.category_id ?? null,
+      is_starred: parsed.is_starred
+    })
+    .select("id")
+    .single();
+
+  if (error) throw error;
+  await revalidateInspirationPaths();
+  return { id: data.id };
+}
+
+export async function updateInspirationEntry(id: string, input: z.infer<typeof inspirationEntrySchema>) {
+  const parsed = inspirationEntrySchema.parse(input);
+  const { supabase, user } = await getAuthed();
+  const { error } = await supabase
+    .from("inspiration_entries")
+    .update({
+      title: parsed.title,
+      url: parsed.url || null,
+      memo: parsed.memo ?? null,
+      category_id: parsed.category_id ?? null,
+      is_starred: parsed.is_starred
+    })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) throw error;
+  await revalidateInspirationPaths();
+  revalidatePath(`/inspiration/${id}`);
+}
+
+export async function deleteInspirationEntry(id: string) {
+  const { supabase, user } = await getAuthed();
+  const { error } = await supabase.from("inspiration_entries").delete().eq("id", id).eq("user_id", user.id);
+  if (error) throw error;
+  await revalidateInspirationPaths();
+}
+
+export async function toggleInspirationStar(id: string, isStarred: boolean) {
+  const { supabase, user } = await getAuthed();
+  const { error } = await supabase
+    .from("inspiration_entries")
+    .update({ is_starred: isStarred })
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) throw error;
+  await revalidateInspirationPaths();
+  revalidatePath(`/inspiration/${id}`);
+}
+
+export async function bulkSetInspirationCategory(entryIds: string[], categoryId: string | null) {
+  if (entryIds.length === 0) return;
+  const { supabase, user } = await getAuthed();
+  const { error } = await supabase
+    .from("inspiration_entries")
+    .update({ category_id: categoryId })
+    .in("id", entryIds)
+    .eq("user_id", user.id);
+  if (error) throw error;
+  await revalidateInspirationPaths();
+}
+
+export async function bulkSetInspirationStar(entryIds: string[], isStarred: boolean) {
+  if (entryIds.length === 0) return;
+  const { supabase, user } = await getAuthed();
+  const { error } = await supabase
+    .from("inspiration_entries")
+    .update({ is_starred: isStarred })
+    .in("id", entryIds)
+    .eq("user_id", user.id);
+  if (error) throw error;
+  await revalidateInspirationPaths();
+}
+
+export async function createInspirationCategory(name: string) {
+  const parsed = inspirationCategorySchema.parse({ name });
+  const { supabase, user } = await getAuthed();
+  const { data: maxSortRow } = await supabase
+    .from("inspiration_categories")
+    .select("sort_order")
+    .eq("user_id", user.id)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextSort = (maxSortRow?.sort_order ?? -1) + 1;
+  const { error } = await supabase.from("inspiration_categories").insert({
+    user_id: user.id,
+    name: parsed.name,
+    sort_order: nextSort
+  });
+  if (error) throw error;
+  await revalidateInspirationPaths();
+}
+
+export async function renameInspirationCategory(id: string, name: string) {
+  const parsed = inspirationCategorySchema.parse({ name });
+  const { supabase, user } = await getAuthed();
+  const { error } = await supabase.from("inspiration_categories").update({ name: parsed.name }).eq("id", id).eq("user_id", user.id);
+  if (error) throw error;
+  await revalidateInspirationPaths();
+}
+
+export async function moveInspirationCategory(id: string, direction: "up" | "down") {
+  const { supabase, user } = await getAuthed();
+  const { data: categories, error } = await supabase
+    .from("inspiration_categories")
+    .select("id,sort_order")
+    .eq("user_id", user.id)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+
+  const index = (categories ?? []).findIndex((c) => c.id === id);
+  if (index < 0) return;
+  const targetIndex = direction === "up" ? index - 1 : index + 1;
+  if (targetIndex < 0 || targetIndex >= (categories?.length ?? 0)) return;
+
+  const current = categories![index];
+  const target = categories![targetIndex];
+
+  const { error: firstErr } = await supabase
+    .from("inspiration_categories")
+    .update({ sort_order: target.sort_order })
+    .eq("id", current.id)
+    .eq("user_id", user.id);
+  if (firstErr) throw firstErr;
+
+  const { error: secondErr } = await supabase
+    .from("inspiration_categories")
+    .update({ sort_order: current.sort_order })
+    .eq("id", target.id)
+    .eq("user_id", user.id);
+  if (secondErr) throw secondErr;
+
+  await revalidateInspirationPaths();
+}
+
+export async function deleteInspirationCategory(id: string) {
+  const { supabase, user } = await getAuthed();
+  const { error: clearErr } = await supabase
+    .from("inspiration_entries")
+    .update({ category_id: null })
+    .eq("category_id", id)
+    .eq("user_id", user.id);
+  if (clearErr) throw clearErr;
+
+  const { error } = await supabase.from("inspiration_categories").delete().eq("id", id).eq("user_id", user.id);
+  if (error) throw error;
+  await revalidateInspirationPaths();
 }
 
 export async function logout() {
