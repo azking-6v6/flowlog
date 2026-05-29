@@ -35,7 +35,7 @@ async function getAuthed() {
 
 async function assertSeriesTypeMatch(seriesId: string, typeId: string, userId: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("series").select("type_id").eq("id", seriesId).eq("user_id", userId).maybeSingle();
+  const { data, error } = await supabase.from("flowlog_series").select("type_id").eq("id", seriesId).eq("user_id", userId).maybeSingle();
   if (error) throw error;
   if (!data || data.type_id !== typeId) {
     throw new Error("Selected series does not belong to the selected content type");
@@ -44,17 +44,17 @@ async function assertSeriesTypeMatch(seriesId: string, typeId: string, userId: s
 
 export async function ensureDefaultTypes() {
   const { supabase, user } = await getAuthed();
-  const { data } = await supabase.from("content_types").select("name").eq("user_id", user.id);
+  const { data } = await supabase.from("flowlog_content_types").select("name").eq("user_id", user.id);
   const existing = new Set((data ?? []).map((row) => row.name));
   const inserts = DEFAULT_CONTENT_TYPES.filter((name) => !existing.has(name)).map((name) => ({ user_id: user.id, name }));
-  if (inserts.length > 0) await supabase.from("content_types").insert(inserts);
+  if (inserts.length > 0) await supabase.from("flowlog_content_types").insert(inserts);
 }
 
 export async function createType(name: string) {
   const { supabase, user } = await getAuthed();
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Type name required");
-  await supabase.from("content_types").insert({ user_id: user.id, name: trimmed });
+  await supabase.from("flowlog_content_types").insert({ user_id: user.id, name: trimmed });
   revalidatePath("/");
   revalidatePath("/add");
   revalidatePath("/library");
@@ -65,7 +65,7 @@ export async function createSeries(name: string, typeId: string) {
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Series name required");
   if (!typeId) throw new Error("Type required for series");
-  await supabase.from("series").insert({ user_id: user.id, name: trimmed, type_id: typeId });
+  await supabase.from("flowlog_series").insert({ user_id: user.id, name: trimmed, type_id: typeId });
   revalidatePath("/");
   revalidatePath("/add");
   revalidatePath("/library");
@@ -79,7 +79,7 @@ export async function createWorkItem(payload: z.infer<typeof workItemSchema>) {
   }
 
   const { data: workRow, error: workErr } = await supabase
-    .from("works")
+    .from("flowlog_works")
     .insert({ title: parsed.title, thumbnail_url: parsed.thumbnail_url ?? null })
     .select("id")
     .single();
@@ -88,7 +88,7 @@ export async function createWorkItem(payload: z.infer<typeof workItemSchema>) {
 
   const completedAt = parsed.status === "completed" ? new Date().toISOString() : null;
   const { data: itemRow, error: itemErr } = await supabase
-    .from("work_items")
+    .from("flowlog_work_items")
     .insert({
       user_id: user.id,
       work_id: workRow.id,
@@ -111,11 +111,11 @@ export async function createWorkItem(payload: z.infer<typeof workItemSchema>) {
   if (itemErr) throw itemErr;
 
   const [{ data: maxGlobal }, { data: maxType }] = await Promise.all([
-    supabase.from("list_orders").select("position").eq("user_id", user.id).eq("scope_type", "global").order("position", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("list_orders").select("position").eq("user_id", user.id).eq("scope_type", "type").eq("type_id", itemRow.type_id).order("position", { ascending: false }).limit(1).maybeSingle()
+    supabase.from("flowlog_list_orders").select("position").eq("user_id", user.id).eq("scope_type", "global").order("position", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("flowlog_list_orders").select("position").eq("user_id", user.id).eq("scope_type", "type").eq("type_id", itemRow.type_id).order("position", { ascending: false }).limit(1).maybeSingle()
   ]);
 
-  await supabase.from("list_orders").insert([
+  await supabase.from("flowlog_list_orders").insert([
     {
       user_id: user.id,
       scope_type: "global",
@@ -146,17 +146,17 @@ export async function updateWorkItem(payload: z.infer<typeof updateSchema>) {
     await assertSeriesTypeMatch(parsed.series_id, parsed.type_id, user.id);
   }
 
-  const { data: existingItem, error: readErr } = await supabase.from("work_items").select("work_id").eq("id", parsed.id).eq("user_id", user.id).single();
+  const { data: existingItem, error: readErr } = await supabase.from("flowlog_work_items").select("work_id").eq("id", parsed.id).eq("user_id", user.id).single();
   if (readErr) throw readErr;
 
   const { error: workErr } = await supabase
-    .from("works")
+    .from("flowlog_works")
     .update({ title: parsed.title, thumbnail_url: parsed.thumbnail_url ?? null })
     .eq("id", existingItem.work_id);
   if (workErr) throw workErr;
 
   const { error } = await supabase
-    .from("work_items")
+    .from("flowlog_work_items")
     .update({
       type_id: parsed.type_id,
       series_id: parsed.series_id ?? null,
@@ -183,7 +183,7 @@ export async function updateWorkItem(payload: z.infer<typeof updateSchema>) {
 export async function updateStatus(id: string, status: Status) {
   const { supabase, user } = await getAuthed();
   const completedAt = status === "completed" ? new Date().toISOString() : null;
-  const { error } = await supabase.from("work_items").update({ status, completed_at: completedAt }).eq("id", id).eq("user_id", user.id);
+  const { error } = await supabase.from("flowlog_work_items").update({ status, completed_at: completedAt }).eq("id", id).eq("user_id", user.id);
   if (error) throw error;
   revalidatePath("/");
   revalidatePath("/library");
@@ -193,7 +193,7 @@ export async function updateStatus(id: string, status: Status) {
 export async function reorder(scopeType: ScopeType, typeId: string | null, orderedIds: string[]) {
   const { supabase, user } = await getAuthed();
 
-  let deleteQuery = supabase.from("list_orders").delete().eq("user_id", user.id).eq("scope_type", scopeType);
+  let deleteQuery = supabase.from("flowlog_list_orders").delete().eq("user_id", user.id).eq("scope_type", scopeType);
   if (scopeType === "type") deleteQuery = deleteQuery.eq("type_id", typeId);
   if (scopeType === "global") deleteQuery = deleteQuery.is("type_id", null);
   const { error: deleteErr } = await deleteQuery;
@@ -208,7 +208,7 @@ export async function reorder(scopeType: ScopeType, typeId: string | null, order
     position: idx + 1
   }));
   if (rows.length > 0) {
-    const { error } = await supabase.from("list_orders").insert(rows);
+    const { error } = await supabase.from("flowlog_list_orders").insert(rows);
     if (error) throw error;
   }
   revalidatePath("/");
@@ -242,7 +242,7 @@ async function revalidateInspirationPaths() {
 
 export async function ensureDefaultInspirationCategories() {
   const { supabase, user } = await getAuthed();
-  const { error } = await supabase.rpc("bootstrap_inspiration_categories", { target_user_id: user.id });
+  const { error } = await supabase.rpc("flowlog_bootstrap_inspiration_categories", { target_user_id: user.id });
   if (error) throw error;
 }
 
@@ -262,7 +262,7 @@ export async function createInspirationEntry(input: z.infer<typeof inspirationEn
   const parsed = inspirationEntrySchema.parse(input);
   const { supabase, user } = await getAuthed();
   const { data, error } = await supabase
-    .from("inspiration_entries")
+    .from("flowlog_inspiration_entries")
     .insert({
       user_id: user.id,
       title: parsed.title,
@@ -283,7 +283,7 @@ export async function updateInspirationEntry(id: string, input: z.infer<typeof i
   const parsed = inspirationEntrySchema.parse(input);
   const { supabase, user } = await getAuthed();
   const { error } = await supabase
-    .from("inspiration_entries")
+    .from("flowlog_inspiration_entries")
     .update({
       title: parsed.title,
       url: parsed.url || null,
@@ -301,7 +301,7 @@ export async function updateInspirationEntry(id: string, input: z.infer<typeof i
 
 export async function deleteInspirationEntry(id: string) {
   const { supabase, user } = await getAuthed();
-  const { error } = await supabase.from("inspiration_entries").delete().eq("id", id).eq("user_id", user.id);
+  const { error } = await supabase.from("flowlog_inspiration_entries").delete().eq("id", id).eq("user_id", user.id);
   if (error) throw error;
   await revalidateInspirationPaths();
 }
@@ -309,7 +309,7 @@ export async function deleteInspirationEntry(id: string) {
 export async function toggleInspirationStar(id: string, isStarred: boolean) {
   const { supabase, user } = await getAuthed();
   const { error } = await supabase
-    .from("inspiration_entries")
+    .from("flowlog_inspiration_entries")
     .update({ is_starred: isStarred })
     .eq("id", id)
     .eq("user_id", user.id);
@@ -322,7 +322,7 @@ export async function bulkSetInspirationCategory(entryIds: string[], categoryId:
   if (entryIds.length === 0) return;
   const { supabase, user } = await getAuthed();
   const { error } = await supabase
-    .from("inspiration_entries")
+    .from("flowlog_inspiration_entries")
     .update({ category_id: categoryId })
     .in("id", entryIds)
     .eq("user_id", user.id);
@@ -334,7 +334,7 @@ export async function bulkSetInspirationStar(entryIds: string[], isStarred: bool
   if (entryIds.length === 0) return;
   const { supabase, user } = await getAuthed();
   const { error } = await supabase
-    .from("inspiration_entries")
+    .from("flowlog_inspiration_entries")
     .update({ is_starred: isStarred })
     .in("id", entryIds)
     .eq("user_id", user.id);
@@ -346,7 +346,7 @@ export async function createInspirationCategory(name: string) {
   const parsed = inspirationCategorySchema.parse({ name });
   const { supabase, user } = await getAuthed();
   const { data: maxSortRow } = await supabase
-    .from("inspiration_categories")
+    .from("flowlog_inspiration_categories")
     .select("sort_order")
     .eq("user_id", user.id)
     .order("sort_order", { ascending: false })
@@ -354,7 +354,7 @@ export async function createInspirationCategory(name: string) {
     .maybeSingle();
 
   const nextSort = (maxSortRow?.sort_order ?? -1) + 1;
-  const { error } = await supabase.from("inspiration_categories").insert({
+  const { error } = await supabase.from("flowlog_inspiration_categories").insert({
     user_id: user.id,
     name: parsed.name,
     sort_order: nextSort
@@ -366,7 +366,7 @@ export async function createInspirationCategory(name: string) {
 export async function renameInspirationCategory(id: string, name: string) {
   const parsed = inspirationCategorySchema.parse({ name });
   const { supabase, user } = await getAuthed();
-  const { error } = await supabase.from("inspiration_categories").update({ name: parsed.name }).eq("id", id).eq("user_id", user.id);
+  const { error } = await supabase.from("flowlog_inspiration_categories").update({ name: parsed.name }).eq("id", id).eq("user_id", user.id);
   if (error) throw error;
   await revalidateInspirationPaths();
 }
@@ -374,7 +374,7 @@ export async function renameInspirationCategory(id: string, name: string) {
 export async function moveInspirationCategory(id: string, direction: "up" | "down") {
   const { supabase, user } = await getAuthed();
   const { data: categories, error } = await supabase
-    .from("inspiration_categories")
+    .from("flowlog_inspiration_categories")
     .select("id,sort_order")
     .eq("user_id", user.id)
     .order("sort_order", { ascending: true })
@@ -390,14 +390,14 @@ export async function moveInspirationCategory(id: string, direction: "up" | "dow
   const target = categories![targetIndex];
 
   const { error: firstErr } = await supabase
-    .from("inspiration_categories")
+    .from("flowlog_inspiration_categories")
     .update({ sort_order: target.sort_order })
     .eq("id", current.id)
     .eq("user_id", user.id);
   if (firstErr) throw firstErr;
 
   const { error: secondErr } = await supabase
-    .from("inspiration_categories")
+    .from("flowlog_inspiration_categories")
     .update({ sort_order: current.sort_order })
     .eq("id", target.id)
     .eq("user_id", user.id);
@@ -409,13 +409,13 @@ export async function moveInspirationCategory(id: string, direction: "up" | "dow
 export async function deleteInspirationCategory(id: string) {
   const { supabase, user } = await getAuthed();
   const { error: clearErr } = await supabase
-    .from("inspiration_entries")
+    .from("flowlog_inspiration_entries")
     .update({ category_id: null })
     .eq("category_id", id)
     .eq("user_id", user.id);
   if (clearErr) throw clearErr;
 
-  const { error } = await supabase.from("inspiration_categories").delete().eq("id", id).eq("user_id", user.id);
+  const { error } = await supabase.from("flowlog_inspiration_categories").delete().eq("id", id).eq("user_id", user.id);
   if (error) throw error;
   await revalidateInspirationPaths();
 }
@@ -425,3 +425,4 @@ export async function logout() {
   await supabase.auth.signOut();
   redirect("/login");
 }
+

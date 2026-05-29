@@ -15,8 +15,8 @@ export async function getUserOrRedirect() {
 export async function getMetaData(userId: string) {
   const supabase = await createClient();
   const [{ data: types }, { data: series }] = await Promise.all([
-    supabase.from("content_types").select("id,name").eq("user_id", userId).order("name"),
-    supabase.from("series").select("id,name,type_id").eq("user_id", userId).order("name")
+    supabase.from("flowlog_content_types").select("id,name").eq("user_id", userId).order("name"),
+    supabase.from("flowlog_series").select("id,name,type_id").eq("user_id", userId).order("name")
   ]);
   return {
     types: (types ?? []) as ContentType[],
@@ -27,8 +27,10 @@ export async function getMetaData(userId: string) {
 export async function getWorkItems(userId: string, statuses?: string[]) {
   const supabase = await createClient();
   let query = supabase
-    .from("work_items")
-    .select("id,user_id,status,rating,review_text,review_good,review_bad,review_note,why_interested,availability_end,completed_at,created_at,updated_at,type_id,series_id,tags,work:works(id,title,thumbnail_url),content_type:content_types(id,name),series:series(id,name,type_id)")
+    .from("flowlog_work_items")
+    .select(
+      "id,user_id,status,rating,review_text,review_good,review_bad,review_note,why_interested,availability_end,completed_at,created_at,updated_at,type_id,series_id,tags,work:flowlog_works(id,title,thumbnail_url),content_type:flowlog_content_types(id,name),series:flowlog_series(id,name,type_id)"
+    )
     .eq("user_id", userId);
 
   if (statuses && statuses.length > 0) query = query.in("status", statuses);
@@ -56,7 +58,7 @@ export type ListOrderRow = {
 
 export async function getOrders(userId: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("list_orders").select("work_item_id,position,scope_type,type_id").eq("user_id", userId);
+  const { data, error } = await supabase.from("flowlog_list_orders").select("work_item_id,position,scope_type,type_id").eq("user_id", userId);
   if (error) throw error;
   return (data ?? []) as ListOrderRow[];
 }
@@ -66,7 +68,7 @@ type InspirationScope = "inbox" | "all" | "star" | "category";
 export async function getInspirationCategories(userId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("inspiration_categories")
+    .from("flowlog_inspiration_categories")
     .select("id,user_id,name,sort_order,created_at")
     .eq("user_id", userId)
     .order("sort_order", { ascending: true })
@@ -92,8 +94,8 @@ export async function getInspirationEntries(
   const query = options.query?.trim();
 
   let builder = supabase
-    .from("inspiration_entries")
-    .select("id,user_id,title,url,memo,category_id,is_starred,created_at,updated_at,category:inspiration_categories(id,name,sort_order)")
+    .from("flowlog_inspiration_entries")
+    .select("id,user_id,title,url,memo,category_id,is_starred,created_at,updated_at,category:flowlog_inspiration_categories(id,name,sort_order)")
     .eq("user_id", userId);
 
   if (options.scope === "inbox") {
@@ -125,8 +127,8 @@ export async function getInspirationEntries(
 export async function getInspirationEntryById(userId: string, id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("inspiration_entries")
-    .select("id,user_id,title,url,memo,category_id,is_starred,created_at,updated_at,category:inspiration_categories(id,name,sort_order)")
+    .from("flowlog_inspiration_entries")
+    .select("id,user_id,title,url,memo,category_id,is_starred,created_at,updated_at,category:flowlog_inspiration_categories(id,name,sort_order)")
     .eq("user_id", userId)
     .eq("id", id)
     .maybeSingle();
@@ -134,3 +136,4 @@ export async function getInspirationEntryById(userId: string, id: string) {
   if (error) throw error;
   return (data ?? null) as InspirationEntry | null;
 }
+
