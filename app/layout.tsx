@@ -26,17 +26,15 @@ async function NavBar() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/75 bg-card/88 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/" className="group relative inline-flex items-center">
+        <Link href={user ? "/home" : "/"} className="inline-flex items-center gap-3">
           <Image src="/icon.svg" alt="Flowlog icon" width={46} height={46} className="h-[46px] w-[46px]" priority />
-          <span className="logo-bounce pointer-events-none absolute left-[52px] top-1/2 text-sm font-extrabold tracking-tight text-foreground/95 group-hover:left-[58px]">
-            Flowlog
-          </span>
+          <span className="text-base font-extrabold tracking-normal text-foreground/95">Flowlog</span>
         </Link>
         {user ? (
           <>
             <nav className="hidden items-center gap-1.5 rounded-full border border-border/70 bg-background/45 px-2 py-1 shadow-[0_10px_24px_-20px_hsl(220_30%_1%_/_0.9)] md:flex">
               <Button asChild variant="ghost" size="sm">
-                <Link href="/">ホーム</Link>
+                <Link href="/home">ホーム</Link>
               </Button>
               <Button asChild variant="ghost" size="sm">
                 <Link href="/add">追加</Link>
@@ -59,7 +57,11 @@ async function NavBar() {
 
             <MobileNav />
           </>
-        ) : null}
+        ) : (
+          <Button asChild size="sm" variant="secondary">
+            <Link href="/login">ログイン</Link>
+          </Button>
+        )}
       </div>
     </header>
   );

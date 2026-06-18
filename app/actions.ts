@@ -55,7 +55,7 @@ export async function createType(name: string) {
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Type name required");
   await supabase.from("flowlog_content_types").insert({ user_id: user.id, name: trimmed });
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/add");
   revalidatePath("/library");
 }
@@ -66,7 +66,7 @@ export async function createSeries(name: string, typeId: string) {
   if (!trimmed) throw new Error("Series name required");
   if (!typeId) throw new Error("Type required for series");
   await supabase.from("flowlog_series").insert({ user_id: user.id, name: trimmed, type_id: typeId });
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/add");
   revalidatePath("/library");
 }
@@ -131,7 +131,7 @@ export async function createWorkItem(payload: z.infer<typeof workItemSchema>) {
     }
   ]);
 
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/library");
   revalidatePath("/manage");
 }
@@ -175,7 +175,7 @@ export async function updateWorkItem(payload: z.infer<typeof updateSchema>) {
     .eq("user_id", user.id);
 
   if (error) throw error;
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/library");
   revalidatePath("/manage");
 }
@@ -185,7 +185,7 @@ export async function updateStatus(id: string, status: Status) {
   const completedAt = status === "completed" ? new Date().toISOString() : null;
   const { error } = await supabase.from("flowlog_work_items").update({ status, completed_at: completedAt }).eq("id", id).eq("user_id", user.id);
   if (error) throw error;
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/library");
   revalidatePath("/manage");
 }
@@ -211,7 +211,7 @@ export async function reorder(scopeType: ScopeType, typeId: string | null, order
     const { error } = await supabase.from("flowlog_list_orders").insert(rows);
     if (error) throw error;
   }
-  revalidatePath("/");
+  revalidatePath("/home");
 }
 
 const inspirationEntrySchema = z.object({

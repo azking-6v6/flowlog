@@ -27,10 +27,10 @@ export function MobileNav() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-50 mt-2 w-44 rounded-xl border border-border/80 bg-card p-2 shadow-[0_18px_30px_-18px_hsl(220_30%_1%_/_0.95)]">
+        <div className="absolute right-0 z-50 mt-2 w-48 rounded-xl border border-border/80 bg-card p-2 shadow-[0_18px_30px_-18px_hsl(220_30%_1%_/_0.95)]">
           <div className="flex flex-col gap-1">
             <Button asChild variant="ghost" size="sm" className="justify-start">
-                <Link href="/" onClick={() => setOpen(false)}>
+              <Link href="/home" onClick={() => setOpen(false)}>
                 ホーム
               </Link>
             </Button>

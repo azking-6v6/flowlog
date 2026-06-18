@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 export default async function LoginPage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
-  if (data.user) redirect("/");
+  if (data.user) redirect("/home");
 
   return (
     <div className="mx-auto mt-20 max-w-md">
@@ -15,7 +15,7 @@ export default async function LoginPage() {
           <CardTitle>Flowlog にログイン</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">Googleログインで PC とスマホの同期を有効化できます。</p>
+          <p className="text-sm text-muted-foreground">Google ログインで PC とスマホの同期を有効化できます。</p>
           <GoogleLoginButton />
         </CardContent>
       </Card>
